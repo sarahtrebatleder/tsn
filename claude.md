@@ -147,3 +147,9 @@ Stored as 1–4 internally.
 - `firestore.rules` uses `"YOUR_UID_HERE"` placeholder only
 - Real UID only ever lives in `config.js` (local) and the Firebase console
 - Google Maps API key is restricted in Google Cloud Console to this GitHub Pages domain and localhost
+
+## Service Worker
+sw.js uses a cache-first strategy for the app shell. The cache name includes a version number (e.g. tsn-cache-v1).
+Every time any file is modified, increment the cache version number in sw.js. This ensures the service worker picks up changes and users don't get stale cached versions.
+Cache should include: index.html, app.js, style.css, manifest.json, and the app icons.
+Do not cache config.js.
