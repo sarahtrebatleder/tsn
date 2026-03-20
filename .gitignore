@@ -1,0 +1,16 @@
+# Real config with API keys — never commit this
+config.js
+
+# OS / editor
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node (not used in this project but just in case)
+node_modules/
+npm-debug.log*

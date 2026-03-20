@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#C8584A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="TSN">
+  <meta name="description" content="Track the restaurants you want to try, love, and didn't like.">
+
+  <title>Try Something New?</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Real API keys live in config.js (gitignored). Copy from config.example.js. -->
+  <script src="config.js"></script>
+
+  <!--
+    Inject the Google Maps JS API using the key from CONFIG.
+    window.__mapsReady is a Promise that resolves when the API is loaded.
+    This runs synchronously before any deferred/module scripts fire.
+  -->
+  <script>
+    window.__mapsReady = new Promise(function(resolve) {
+      window.__mapsInit = resolve;
+    });
+    (function() {
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js'
+        + '?key=' + (window.CONFIG && window.CONFIG.GOOGLE_MAPS_API_KEY || '')
+        + '&libraries=places'
+        + '&callback=__mapsInit';
+      s.defer = true;
+      document.head.appendChild(s);
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- ── Auth screen ──────────────────────────────────────────────────────── -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="icons/icon-192.svg" alt="" width="72" height="72">
+      </div>
+      <h1>Try Something New?</h1>
+      <p>Your personal restaurant tracker.<br>Sign in to get started.</p>
+      <button id="sign-in-btn" class="btn btn-primary btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 6.294C4.672 4.169 6.656 3.58 9 3.58z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p class="auth-note">Personal use only — access is restricted to one account.</p>
+    </div>
+  </div>
+
+  <!-- ── App shell (hidden until authenticated) ───────────────────────────── -->
+  <div id="app" hidden>
+
+    <header class="app-header">
+      <span class="app-title">Try Something New?</span>
+      <button id="sign-out-btn" class="btn-icon" aria-label="Sign out" title="Sign out">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="want_to_try" role="tab" aria-selected="true">Want to Try</button>
+      <button class="tab-btn" data-tab="liked" role="tab" aria-selected="false">We Like It</button>
+      <button class="tab-btn" data-tab="disliked" role="tab" aria-selected="false">Didn't Like It</button>
+    </nav>
+
+    <main id="list-container" class="list-container" role="main"></main>
+
+    <!-- Floating add button -->
+    <div class="fab-container">
+      <button id="add-btn" class="fab" aria-label="Add a restaurant">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <footer class="app-footer">
+      <button id="suggest-btn" class="btn btn-suggest">What should we eat?</button>
+    </footer>
+
+  </div><!-- /#app -->
+
+
+  <!-- ── Add Restaurant modal ─────────────────────────────────────────────── -->
+  <div id="add-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="add-modal-title">Add Restaurant</h2>
+        <button id="add-modal-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="add-form" class="modal-body" novalidate>
+
+        <div class="form-group">
+          <label for="place-input">Restaurant</label>
+          <input type="text" id="place-input" placeholder="Search for a place…" autocomplete="off">
+        </div>
+
+        <div id="cuisine-tags-wrap" hidden>
+          <div class="form-group-label">Cuisine tags <span class="label-hint">(tap × to remove, + to add)</span></div>
+          <div id="cuisine-tags" class="cuisine-tags"></div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-group-label">Status</div>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="add-status" value="want_to_try" checked>
+              Want to Try
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="add-status" value="tried">
+              Already tried it
+            </label>
+          </div>
+        </div>
+
+        <div id="tried-fields" hidden>
+          <div class="form-group">
+            <div class="form-group-label">Rating</div>
+            <div id="add-rating" class="chip-group" role="group" aria-label="Rating">
+              <button type="button" class="chip" data-value="1">Okay</button>
+              <button type="button" class="chip" data-value="2">Good</button>
+              <button type="button" class="chip" data-value="3">Great</button>
+              <button type="button" class="chip" data-value="4">The best!</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="add-notes">Notes</label>
+            <textarea id="add-notes" placeholder="Anything to remember about this place…" rows="3"></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">Save Restaurant</button>
+
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ── Detail modal ─────────────────────────────────────────────────────── -->
+  <div id="detail-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="detail-name">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="detail-name" class="detail-modal-title"></h2>
+        <button id="detail-modal-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="detail-address" class="detail-address"></div>
+        <div class="detail-meta">
+          <span id="detail-price" class="price-badge"></span>
+          <span id="detail-status-badge" class="status-badge"></span>
+          <span id="detail-rating-badge" class="rating-badge"></span>
+        </div>
+        <div id="detail-cuisine" class="tags"></div>
+        <div class="form-group">
+          <label for="detail-notes">Notes</label>
+          <textarea id="detail-notes" placeholder="Add notes about this place…" rows="3"></textarea>
+        </div>
+        <div id="detail-actions" class="detail-actions"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── Rating modal ──────────────────────────────────────────────────────── -->
+  <div id="rating-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rating-modal-title">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <h2 id="rating-modal-title">How was it?</h2>
+        <button id="rating-modal-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-rating" class="chip-group chip-group-large" role="group" aria-label="Rating">
+          <button type="button" class="chip" data-value="1">Okay</button>
+          <button type="button" class="chip" data-value="2">Good</button>
+          <button type="button" class="chip" data-value="3">Great</button>
+          <button type="button" class="chip" data-value="4">The best!</button>
+        </div>
+        <button id="rating-save-btn" class="btn btn-primary btn-full">Save Rating</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── "What should we eat?" modal ──────────────────────────────────────── -->
+  <div id="suggest-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="What should we eat?">
+    <div class="modal modal-suggest">
+      <div class="modal-header modal-header-actions">
+        <div><!-- spacer --></div>
+        <button id="suggest-modal-close" class="btn-icon" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="suggest-content" class="modal-body suggest-body"></div>
+    </div>
+  </div>
+
+
+  <!-- ── Confirm dialog ────────────────────────────────────────────────────── -->
+  <div id="confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-message">
+    <div class="modal modal-small">
+      <div class="modal-body">
+        <p id="confirm-message" class="confirm-message"></p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="btn btn-ghost"></button>
+          <button id="confirm-ok" class="btn btn-primary"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── Toast notification ────────────────────────────────────────────────── -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+  <!-- App logic — ES module, loads after DOM is parsed -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
