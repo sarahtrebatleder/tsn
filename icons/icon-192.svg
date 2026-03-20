@@ -1,0 +1,16 @@
+<!--
+  PLACEHOLDER ICON — replace with a real 192×192 PNG for production.
+  For best PWA installability across all platforms, export this as icon-192.png
+  and update manifest.json to use "type": "image/png".
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="44" fill="#C8584A"/>
+  <!-- Fork -->
+  <line x1="72" y1="44" x2="72" y2="148" stroke="white" stroke-width="7" stroke-linecap="round"/>
+  <line x1="60" y1="44" x2="60" y2="80" stroke="white" stroke-width="7" stroke-linecap="round"/>
+  <line x1="84" y1="44" x2="84" y2="80" stroke="white" stroke-width="7" stroke-linecap="round"/>
+  <path d="M60 80 Q72 96 84 80" fill="none" stroke="white" stroke-width="7" stroke-linecap="round"/>
+  <!-- Spoon -->
+  <line x1="120" y1="148" x2="120" y2="100" stroke="white" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="120" cy="76" rx="14" ry="20" fill="none" stroke="white" stroke-width="7"/>
+</svg>
