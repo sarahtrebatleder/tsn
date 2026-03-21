@@ -246,6 +246,42 @@ img { display: block; }
   margin-top: 2px;
 }
 
+.card-reload {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-reload:hover {
+  opacity: 1;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.card-reload:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.card-reload.spinning svg {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .card-chevron {
   color: var(--border);
   font-size: 1.3rem;
