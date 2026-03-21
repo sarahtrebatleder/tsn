@@ -41,6 +41,7 @@ let selectedPlace   = null; // place data from Maps autocomplete
 let detailTarget    = null; // restaurant currently open in detail modal
 let autocomplete    = null; // google.maps.places.Autocomplete instance
 let userLocation    = null; // { lat, lng } from geolocation
+let suggestOnlyOpen = true; // filter suggest results to open restaurants
 
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -129,19 +130,30 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+function openSortKey(r) {
+  const s = isOpenNow(r.openingHours);
+  return s === true ? 0 : s === null ? 1 : 2;
+}
+
 function sortedForTab(tab) {
   const list = restaurants.filter(r => r.status === tab);
   if (tab === 'want_to_try') {
-    // Most recently added first
-    return list.sort((a, b) => (b.addedAt?.seconds ?? 0) - (a.addedAt?.seconds ?? 0));
+    // Open first, then most recently added
+    return list.sort((a, b) =>
+      openSortKey(a) - openSortKey(b) ||
+      (b.addedAt?.seconds ?? 0) - (a.addedAt?.seconds ?? 0));
   }
   if (tab === 'liked') {
-    // Rating desc, then name asc
+    // Open first, then rating desc, then name asc
     return list.sort((a, b) =>
-      (b.rating ?? 0) - (a.rating ?? 0) || (a.name ?? '').localeCompare(b.name ?? ''));
+      openSortKey(a) - openSortKey(b) ||
+      (b.rating ?? 0) - (a.rating ?? 0) ||
+      (a.name ?? '').localeCompare(b.name ?? ''));
   }
-  // disliked — alphabetical
-  return list.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+  // disliked — open first, then alphabetical
+  return list.sort((a, b) =>
+    openSortKey(a) - openSortKey(b) ||
+    (a.name ?? '').localeCompare(b.name ?? ''));
 }
 
 function renderList() {
@@ -617,8 +629,15 @@ function renderStep1() {
     <div class="suggest-choices">
       <button class="btn btn-primary"   id="s-new">Something new ✨</button>
       <button class="btn btn-secondary" id="s-loved">Something we love ❤️</button>
-    </div>`);
+    </div>
+    <label class="suggest-open-label">
+      <input type="checkbox" id="s-open-only" ${suggestOnlyOpen ? 'checked' : ''}>
+      Only open restaurants
+    </label>`);
 
+  document.getElementById('s-open-only').addEventListener('change', e => {
+    suggestOnlyOpen = e.target.checked;
+  });
   document.getElementById('s-new').addEventListener('click', () => renderStep2('want_to_try'));
   document.getElementById('s-loved').addEventListener('click', () => renderStep2('liked'));
 }
@@ -643,6 +662,10 @@ function renderStep2(type) {
 // ── Pick ──────────────────────────────────────────────────────────────────────
 async function pickSuggestion(type, nearMe, skipRadius = false) {
   let pool = restaurants.filter(r => r.status === type);
+
+  if (suggestOnlyOpen) {
+    pool = pool.filter(r => isOpenNow(r.openingHours) === true);
+  }
 
   if (nearMe && !skipRadius) {
     setContent(`<div class="loading-spinner"></div>`);
