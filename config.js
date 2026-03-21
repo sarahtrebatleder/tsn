@@ -1,4 +1,4 @@
-const CONFIG = {
+window.CONFIG = {
   FIREBASE: {
     apiKey:           "AIzaSyAC9TYmf9s9gbw2J8D6wG2tzKvH6IZUbz4",
     authDomain:        "tsn-app-eef65.firebaseapp.com",
