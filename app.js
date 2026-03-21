@@ -24,19 +24,6 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 
-// ─── Config guard ─────────────────────────────────────────────────────────────
-// Surface a clear error if config.js hasn't been filled in yet.
-(function checkConfig() {
-  const c = window.CONFIG;
-  if (!c || c.GOOGLE_MAPS_API_KEY === 'YOUR_MAPS_API_KEY') {
-    document.getElementById('auth-screen').innerHTML = `
-      <div class="auth-card">
-        <h1 style="color:#C8584A">Setup required</h1>
-        <p>Copy <code>config.example.js</code> to <code>config.js</code> and fill in your Firebase and Maps API credentials.</p>
-      </div>`;
-    throw new Error('TSN: config.js not configured. See config.example.js.');
-  }
-})();
 
 
 // ─── Firebase init ────────────────────────────────────────────────────────────
