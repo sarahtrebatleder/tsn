@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(jq -r '.tool_input.file_path // empty'); if echo \"$file\" | grep -qE '\\.(js|html)$'; then echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"REMINDER (from claude.md): You just modified a .js or .html file. Have you incremented the cache version in sw.js (CACHE_NAME) AND updated the version label in index.html? Both must match. Do this before finishing your task.\"}}'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
