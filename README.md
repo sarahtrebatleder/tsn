@@ -22,14 +22,10 @@ A personal restaurant tracker PWA. Track places you want to try, love, and didn'
 
 ### 3. Config
 
-```bash
-cp config.example.js config.js
-```
-
 Edit `config.js` with your real values:
 
 ```js
-const CONFIG = {
+window.CONFIG = {
   FIREBASE: {
     apiKey:            "...",
     authDomain:        "...",
@@ -39,11 +35,10 @@ const CONFIG = {
     appId:             "...",
   },
   GOOGLE_MAPS_API_KEY: "...",
-  ALLOWED_UID: "...",   // your Firebase UID (Authentication → Users)
 };
 ```
 
-`config.js` is gitignored and will never be committed.
+`config.js` is committed to the repo — be mindful of committing real API keys to a public repository.
 
 ### 4. Firestore security rules
 
@@ -69,8 +64,7 @@ If your Pages site is hosted at a **sub-path** (e.g. `username.github.io/tsn/`),
 ├── style.css           # Mobile-first styles, terracotta theme
 ├── sw.js               # Service worker — caches app shell for offline use
 ├── manifest.json       # PWA manifest
-├── config.js           # ⚠️ GITIGNORED — your real API keys go here
-├── config.example.js   # Committed placeholder — copy to config.js
+├── config.js           # Firebase + Maps API keys
 ├── firestore.rules     # Firestore security rules (deploy manually)
 ├── icons/
 │   ├── icon-192.svg    # Placeholder icon — replace with PNG for production
