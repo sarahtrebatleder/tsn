@@ -7,7 +7,8 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -55,11 +56,16 @@ const listContainer  = document.getElementById('list-container');
 
 document.getElementById('sign-in-btn').addEventListener('click', async () => {
   try {
-    await signInWithPopup(auth, new GoogleAuthProvider());
+    await signInWithRedirect(auth, new GoogleAuthProvider());
   } catch (err) {
-    if (err.code !== 'auth/popup-closed-by-user') {
-      showToast('Sign-in failed — please try again.');
-    }
+    showToast('Sign-in failed — please try again.');
+  }
+});
+
+// Handle the result when returning from the Google redirect.
+getRedirectResult(auth).catch(err => {
+  if (err.code !== 'auth/cancelled-popup-request') {
+    showToast('Sign-in failed — please try again.');
   }
 });
 
