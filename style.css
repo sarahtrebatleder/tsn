@@ -787,6 +787,13 @@ input[type="radio"] {
   cursor: pointer;
 }
 
+.suggest-open-label input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .suggest-empty {
   text-align: center;
 }
