@@ -776,6 +776,17 @@ input[type="radio"] {
   font-style: italic;
 }
 
+.suggest-open-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
 .suggest-empty {
   text-align: center;
 }
