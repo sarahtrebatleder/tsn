@@ -389,11 +389,40 @@ function renderDetail() {
   document.getElementById('detail-price').textContent    = price;
   document.getElementById('detail-status-badge').textContent = statusLabel(r.status);
   document.getElementById('detail-rating-badge').textContent = r.rating ? ratingLabel(r.rating) : '';
-  document.getElementById('detail-cuisine').innerHTML    =
-    (r.cuisine ?? []).map(c => `<span class="tag">${esc(c)}</span>`).join('');
+  renderDetailCuisineTags(r.cuisine ?? []);
   document.getElementById('detail-notes').value          = r.notes ?? '';
 
   renderDetailActions(r);
+}
+
+function renderDetailCuisineTags(tags) {
+  const container = document.getElementById('detail-cuisine');
+  const tagHtml = tags.map((t, i) => `
+    <span class="tag">
+      ${esc(t)}
+      <button type="button" class="tag-remove" data-index="${i}" aria-label="Remove ${esc(t)}">×</button>
+    </span>`).join('');
+  container.innerHTML = tagHtml
+    + `<button type="button" class="tag-add" id="detail-tag-add-btn">+ Add</button>`;
+
+  container.querySelectorAll('.tag-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      detailTarget.cuisine.splice(parseInt(btn.dataset.index, 10), 1);
+      renderDetailCuisineTags(detailTarget.cuisine);
+      await patchRestaurant(detailTarget.id, { cuisine: detailTarget.cuisine });
+      renderList();
+    });
+  });
+
+  document.getElementById('detail-tag-add-btn').addEventListener('click', async () => {
+    const tag = prompt('Add a cuisine tag:')?.trim();
+    if (tag) {
+      detailTarget.cuisine.push(tag);
+      renderDetailCuisineTags(detailTarget.cuisine);
+      await patchRestaurant(detailTarget.id, { cuisine: detailTarget.cuisine });
+      renderList();
+    }
+  });
 }
 
 function renderDetailActions(r) {
