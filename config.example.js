@@ -15,7 +15,4 @@ const CONFIG = {
     appId:             "YOUR_APP_ID",
   },
   GOOGLE_MAPS_API_KEY: "YOUR_MAPS_API_KEY",
-  // Your Firebase UID — find it in the Firebase console under Authentication.
-  // Must match the UID in firestore.rules.
-  ALLOWED_UID: "YOUR_FIREBASE_UID",
 };
