@@ -173,17 +173,23 @@ function emptyStateHtml(tab) {
 }
 
 function restaurantCardHtml(r) {
-  const price      = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
-  const rating     = r.rating ? ratingLabel(r.rating) : '';
+  const price       = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
+  const rating      = r.rating ? ratingLabel(r.rating) : '';
   const cuisineHtml = (r.cuisine ?? []).slice(0, 3)
     .map(c => `<span class="tag">${esc(c)}</span>`).join('');
+  const openStatus  = isOpenNow(r.openingHours);
+  const openBadge   = openStatus === null ? ''
+    : openStatus
+      ? `<span class="open-badge">Open</span>`
+      : `<span class="closed-badge">Closed</span>`;
   return `
     <div class="restaurant-card" data-id="${esc(r.id)}">
       <div class="card-main">
         <div class="card-name">${esc(r.name)}</div>
         <div class="card-row">
-          ${price  ? `<span class="price">${esc(price)}</span>` : ''}
-          ${rating ? `<span class="rating-label">${esc(rating)}</span>` : ''}
+          ${price    ? `<span class="price">${esc(price)}</span>` : ''}
+          ${rating   ? `<span class="rating-label">${esc(rating)}</span>` : ''}
+          ${openBadge}
         </div>
         ${cuisineHtml ? `<div class="tags">${cuisineHtml}</div>` : ''}
         <div class="card-address">${esc(r.address)}</div>
@@ -234,7 +240,7 @@ async function initAutocomplete() {
   const input = document.getElementById('place-input');
   autocomplete = new window.google.maps.places.Autocomplete(input, {
     types: ['food'],
-    fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'price_level'],
+    fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'price_level', 'opening_hours'],
   });
   autocomplete.addListener('place_changed', onPlaceSelected);
 }
@@ -244,13 +250,17 @@ function onPlaceSelected() {
   if (!place?.place_id) return;
 
   selectedPlace = {
-    placeId:    place.place_id,
-    name:       place.name,
-    address:    place.formatted_address,
-    lat:        place.geometry.location.lat(),
-    lng:        place.geometry.location.lng(),
-    cuisine:    extractCuisine(place.types),
-    priceLevel: place.price_level ?? null,
+    placeId:      place.place_id,
+    name:         place.name,
+    address:      place.formatted_address,
+    lat:          place.geometry.location.lat(),
+    lng:          place.geometry.location.lng(),
+    cuisine:      extractCuisine(place.types),
+    priceLevel:   place.price_level ?? null,
+    openingHours: place.opening_hours ? {
+      periods:      place.opening_hours.periods ?? [],
+      weekday_text: place.opening_hours.weekday_text ?? [],
+    } : null,
   };
 
   // Reflect name in input (autocomplete shows the full address by default)
@@ -383,12 +393,27 @@ function renderDetail() {
   const mapsUrl  = `https://www.google.com/maps/place/?q=place_id:${r.placeId}`;
   const price    = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
 
+  const openStatus  = isOpenNow(r.openingHours);
+  const hours       = todaysHours(r.openingHours);
+
   document.getElementById('detail-name').textContent     = r.name;
   document.getElementById('detail-address').innerHTML    =
     `<a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">${esc(r.address)} ↗</a>`;
   document.getElementById('detail-price').textContent    = price;
   document.getElementById('detail-status-badge').textContent = statusLabel(r.status);
   document.getElementById('detail-rating-badge').textContent = r.rating ? ratingLabel(r.rating) : '';
+
+  const hoursEl = document.getElementById('detail-hours');
+  if (openStatus !== null) {
+    const badgeHtml = openStatus
+      ? `<span class="open-badge">Open now</span>`
+      : `<span class="closed-badge">Closed now</span>`;
+    hoursEl.innerHTML = badgeHtml + (hours ? ` <span class="detail-hours-text">${esc(hours)}</span>` : '');
+    hoursEl.hidden = false;
+  } else {
+    hoursEl.hidden = true;
+  }
+
   renderDetailCuisineTags(r.cuisine ?? []);
   document.getElementById('detail-notes').value          = r.notes ?? '';
 
@@ -640,19 +665,25 @@ function renderSuggestionCard(pool, index, type) {
     return;
   }
 
-  const r       = pool[index];
-  const mapsUrl = `https://www.google.com/maps/place/?q=place_id:${r.placeId}`;
-  const price   = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
-  const cuisine = (r.cuisine ?? []).map(c => `<span class="tag">${esc(c)}</span>`).join('');
+  const r          = pool[index];
+  const mapsUrl    = `https://www.google.com/maps/place/?q=place_id:${r.placeId}`;
+  const price      = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
+  const cuisine    = (r.cuisine ?? []).map(c => `<span class="tag">${esc(c)}</span>`).join('');
+  const openStatus = isOpenNow(r.openingHours);
+  const openBadge  = openStatus === null ? ''
+    : openStatus
+      ? `<div class="suggestion-open"><span class="open-badge">Open now</span></div>`
+      : `<div class="suggestion-open"><span class="closed-badge">Closed now</span></div>`;
 
   setContent(`
     <div class="suggestion-card">
       <div class="suggestion-name">${esc(r.name)}</div>
-      ${price   ? `<div class="suggestion-price">${esc(price)}</div>` : ''}
-      ${cuisine ? `<div class="tags" style="justify-content:center">${cuisine}</div>` : ''}
+      ${price    ? `<div class="suggestion-price">${esc(price)}</div>` : ''}
+      ${cuisine  ? `<div class="tags" style="justify-content:center">${cuisine}</div>` : ''}
       <div class="suggestion-address">
         <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer">${esc(r.address)} ↗</a>
       </div>
+      ${openBadge}
       ${r.rating ? `<div class="suggestion-rating">${esc(ratingLabel(r.rating))}</div>` : ''}
     </div>
     <div class="suggest-actions">
@@ -791,6 +822,46 @@ function showToast(message) {
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITIES
 // ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Returns true if the restaurant is currently open, false if closed,
+ * or null if no hours data is available.
+ * Uses the stored Google Places `periods` array — no API call needed.
+ */
+function isOpenNow(openingHours) {
+  const periods = openingHours?.periods;
+  if (!periods?.length) return null;
+  // 24/7: single period with no close time
+  if (periods.length === 1 && !periods[0].close) return true;
+
+  const now  = new Date();
+  const day  = now.getDay();   // 0 = Sunday
+  const mins = now.getHours() * 60 + now.getMinutes();
+
+  return periods.some(({ open, close }) => {
+    if (!close) return false;
+    const openMins  = open.hours  * 60 + open.minutes;
+    const closeMins = close.hours * 60 + close.minutes;
+    if (open.day === close.day) {
+      return day === open.day && mins >= openMins && mins < closeMins;
+    }
+    // Overnight period (e.g. Fri 23:00 → Sat 02:00)
+    if (day === open.day)  return mins >= openMins;
+    if (day === close.day) return mins < closeMins;
+    return false;
+  });
+}
+
+/** Returns today's hours string from weekday_text, e.g. "11:00 AM – 10:00 PM". */
+function todaysHours(openingHours) {
+  const text = openingHours?.weekday_text;
+  if (!text?.length) return null;
+  // weekday_text is Mon–Sun indexed 0–6 in JS but Google's array starts Monday=0
+  const googleDay = (new Date().getDay() + 6) % 7; // convert JS Sun=0 → Google Mon=0
+  const entry = text[googleDay] ?? '';
+  // Strip the day name prefix ("Monday: 11:00 AM – 10:00 PM" → "11:00 AM – 10:00 PM")
+  return entry.replace(/^[^:]+:\s*/, '');
+}
 
 /** Escape HTML special characters to prevent XSS when inserting into innerHTML. */
 function esc(str) {
