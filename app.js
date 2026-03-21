@@ -43,6 +43,7 @@ let autocomplete    = null; // google.maps.places.Autocomplete instance
 let userLocation    = null; // { lat, lng } from geolocation
 let suggestOnlyOpen = true; // filter suggest results to open restaurants
 let pendingMapsUrl  = null; // maps_url param stored until user is signed in
+let pendingPlaceName = null; // place_name param stored until user is signed in
 
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -79,6 +80,10 @@ onAuthStateChanged(auth, async user => {
       const url = pendingMapsUrl;
       pendingMapsUrl = null;
       await handleMapsUrl(url);
+    } else if (pendingPlaceName) {
+      const name = pendingPlaceName;
+      pendingPlaceName = null;
+      await handlePlaceName(name);
     }
   } else {
     currentUser = null;
@@ -87,10 +92,13 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Capture ?maps_url= immediately; processing happens after auth resolves
+// Capture ?maps_url= / ?place_name= immediately; processing happens after auth resolves
 {
-  const raw = new URLSearchParams(window.location.search).get('maps_url');
-  if (raw) pendingMapsUrl = raw;
+  const params = new URLSearchParams(window.location.search);
+  const rawUrl  = params.get('maps_url');
+  const rawName = params.get('place_name');
+  if (rawUrl)  pendingMapsUrl   = rawUrl;
+  if (rawName) pendingPlaceName = rawName;
 }
 
 
@@ -1103,6 +1111,43 @@ async function handleMapsUrl(rawParam) {
       if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.length) {
         // Fall back: pre-populate the search field so the user can confirm manually
         document.getElementById('place-input').value = pathSegment;
+        showAddFormNotice("Couldn't load restaurant from link — please search manually");
+        return;
+      }
+      prefillAddForm(results[0]);
+    },
+  );
+}
+
+
+/**
+ * Handle the ?place_name= parameter sent by the iOS Shortcut.
+ * Directly searches for the place name using the Places API.
+ */
+async function handlePlaceName(rawParam) {
+  const placeName = decodeURIComponent(rawParam);
+  removeUrlParam('place_name');
+
+  await openAddModal();
+
+  if (!placeName) {
+    showAddFormNotice("Couldn't load restaurant from link — please search manually");
+    return;
+  }
+
+  showAddFormNotice('Looking up restaurant…');
+
+  await window.__mapsReady;
+  const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+
+  service.findPlaceFromText(
+    {
+      query:  placeName,
+      fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'price_level', 'opening_hours'],
+    },
+    (results, status) => {
+      if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.length) {
+        document.getElementById('place-input').value = placeName;
         showAddFormNotice("Couldn't load restaurant from link — please search manually");
         return;
       }
