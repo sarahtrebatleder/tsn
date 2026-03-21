@@ -80,11 +80,6 @@ document.getElementById('sign-out-btn').addEventListener('click', () => signOut(
 
 onAuthStateChanged(auth, async user => {
   if (user) {
-    if (user.uid !== window.CONFIG.ALLOWED_UID) {
-      await signOut(auth);
-      showToast('Access denied — this app is single-user only.');
-      return;
-    }
     currentUser = user;
     authScreen.hidden = true;
     appShell.hidden   = false;
