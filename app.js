@@ -1004,11 +1004,23 @@ function removeUrlParam(key) {
   history.replaceState(null, '', url.toString());
 }
 
-/** Return the last non-empty path segment of a URL string, or null. */
+/**
+ * Extract the place name from a Google Maps URL.
+ * Handles full URLs (google.com/maps/place/NAME/...) by reading the segment
+ * after "/maps/place/".  Returns null for short URLs (maps.app.goo.gl/...)
+ * that cannot be resolved client-side.
+ */
 function extractUrlPathSegment(urlStr) {
   try {
-    const segments = new URL(urlStr).pathname.split('/').filter(Boolean);
-    return segments[segments.length - 1] || null;
+    const url = new URL(urlStr);
+    // Full Maps URL: pathname is /maps/place/PLACE_NAME/@lat,lng,.../data=...
+    // Capture everything after /maps/place/ up to the next / or @
+    const match = url.pathname.match(/\/maps\/place\/([^/@]+)/);
+    if (match) {
+      return decodeURIComponent(match[1].replace(/\+/g, ' '));
+    }
+    // Short URLs (maps.app.goo.gl, goo.gl/maps) cannot be resolved client-side
+    return null;
   } catch {
     return null;
   }
