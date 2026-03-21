@@ -42,6 +42,7 @@ let detailTarget    = null; // restaurant currently open in detail modal
 let autocomplete    = null; // google.maps.places.Autocomplete instance
 let userLocation    = null; // { lat, lng } from geolocation
 let suggestOnlyOpen = true; // filter suggest results to open restaurants
+let pendingMapsUrl  = null; // maps_url param stored until user is signed in
 
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -73,12 +74,24 @@ onAuthStateChanged(auth, async user => {
     appShell.hidden   = false;
     await loadRestaurants();
     renderList();
+    // Process any maps_url that arrived before sign-in completed
+    if (pendingMapsUrl) {
+      const url = pendingMapsUrl;
+      pendingMapsUrl = null;
+      await handleMapsUrl(url);
+    }
   } else {
     currentUser = null;
     authScreen.hidden = false;
     appShell.hidden   = true;
   }
 });
+
+// Capture ?maps_url= immediately; processing happens after auth resolves
+{
+  const raw = new URLSearchParams(window.location.search).get('maps_url');
+  if (raw) pendingMapsUrl = raw;
+}
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -253,6 +266,7 @@ async function openAddModal() {
   document.getElementById('cuisine-tags').innerHTML = '';
   document.getElementById('cuisine-tags-wrap').hidden = true;
   document.getElementById('tried-fields').hidden      = true;
+  clearAddFormNotice();
   // Clear any leftover chip selections
   addModal.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
   addModal.classList.add('open');
@@ -976,6 +990,113 @@ function statusLabel(s) {
 function getChipValue(groupId) {
   const sel = document.getElementById(groupId)?.querySelector('.chip.selected');
   return sel ? parseInt(sel.dataset.value, 10) : null;
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// IOS SHORTCUT — ?maps_url= PARAMETER HANDLING
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Remove a single query param from the address bar without reloading. */
+function removeUrlParam(key) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(key);
+  history.replaceState(null, '', url.toString());
+}
+
+/** Return the last non-empty path segment of a URL string, or null. */
+function extractUrlPathSegment(urlStr) {
+  try {
+    const segments = new URL(urlStr).pathname.split('/').filter(Boolean);
+    return segments[segments.length - 1] || null;
+  } catch {
+    return null;
+  }
+}
+
+function showAddFormNotice(message) {
+  const el = document.getElementById('add-form-notice');
+  if (!el) return;
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function clearAddFormNotice() {
+  const el = document.getElementById('add-form-notice');
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = '';
+}
+
+/** Pre-fill the Add form with a resolved Google Place object. */
+function prefillAddForm(place) {
+  selectedPlace = {
+    placeId:      place.place_id,
+    name:         place.name,
+    address:      place.formatted_address,
+    lat:          place.geometry.location.lat(),
+    lng:          place.geometry.location.lng(),
+    cuisine:      extractCuisine(place.types),
+    priceLevel:   place.price_level ?? null,
+    openingHours: place.opening_hours ? {
+      periods:      place.opening_hours.periods ?? [],
+      weekday_text: place.opening_hours.weekday_text ?? [],
+    } : null,
+  };
+
+  document.getElementById('place-input').value = place.name;
+  document.getElementById('cuisine-tags-wrap').hidden = false;
+  renderCuisineTags(selectedPlace.cuisine);
+  // Default status to "Want to Try"
+  document.querySelector('input[name="add-status"][value="want_to_try"]').checked = true;
+  document.getElementById('tried-fields').hidden = true;
+  clearAddFormNotice();
+}
+
+/**
+ * Handle the ?maps_url= parameter sent by the iOS Shortcut.
+ * Decodes the value, strips query params from the Maps short URL,
+ * extracts the path segment, and queries the Places API (CORS-safe).
+ * Falls back to pre-populating the search field with the path segment.
+ */
+async function handleMapsUrl(rawParam) {
+  // Decode and strip any query string from the maps short URL
+  const decoded  = decodeURIComponent(rawParam);
+  const cleanUrl = decoded.split('?')[0];
+  const pathSegment = extractUrlPathSegment(cleanUrl);
+
+  // Remove ?maps_url= from the address bar so refresh doesn't re-trigger
+  removeUrlParam('maps_url');
+
+  // Open the Add form (resets state)
+  await openAddModal();
+
+  if (!pathSegment) {
+    showAddFormNotice("Couldn't load restaurant from link — please search manually");
+    return;
+  }
+
+  showAddFormNotice('Looking up restaurant…');
+
+  await window.__mapsReady;
+  const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+
+  // Use findPlaceFromText — CORS-safe, calls Google's API directly
+  service.findPlaceFromText(
+    {
+      query:  pathSegment,
+      fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'price_level', 'opening_hours'],
+    },
+    (results, status) => {
+      if (status !== window.google.maps.places.PlacesServiceStatus.OK || !results?.length) {
+        // Fall back: pre-populate the search field so the user can confirm manually
+        document.getElementById('place-input').value = pathSegment;
+        showAddFormNotice("Couldn't load restaurant from link — please search manually");
+        return;
+      }
+      prefillAddForm(results[0]);
+    },
+  );
 }
 
 
