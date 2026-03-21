@@ -651,6 +651,39 @@ input[type="radio"] {
   color: var(--accent);
 }
 
+.open-badge, .closed-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.open-badge {
+  background: #E6F4EA;
+  color: #2D7A3A;
+}
+.closed-badge {
+  background: #F0F0F0;
+  color: #888;
+}
+
+.detail-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.detail-hours-text {
+  color: var(--text-muted);
+}
+
+.suggestion-open {
+  margin: 6px 0;
+}
+
 .detail-actions {
   display: flex;
   flex-direction: column;
