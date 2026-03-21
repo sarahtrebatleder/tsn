@@ -157,6 +157,23 @@ function renderList() {
       if (r) openDetail(r);
     });
   });
+  listContainer.querySelectorAll('.card-reload').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const id = btn.closest('.restaurant-card').dataset.id;
+      const r = restaurants.find(r => r.id === id);
+      if (!r) return;
+      btn.disabled = true;
+      btn.classList.add('spinning');
+      try {
+        await reloadFromPlaces(r);
+        renderList();
+        showToast('Info updated from Google Places!');
+      } catch {
+        showToast('Could not refresh — try again later.');
+      }
+    });
+  });
 }
 
 function emptyStateHtml(tab) {
@@ -194,6 +211,12 @@ function restaurantCardHtml(r) {
         ${cuisineHtml ? `<div class="tags">${cuisineHtml}</div>` : ''}
         <div class="card-address">${esc(r.address)}</div>
       </div>
+      <button class="card-reload" aria-label="Refresh from Google Places" title="Refresh info from Google">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+      </button>
       <div class="card-chevron" aria-hidden="true">›</div>
     </div>`;
 }
@@ -801,6 +824,51 @@ function shuffle(arr) {
 function weightedShuffle(list) {
   const weighted = list.flatMap(r => Array(r.rating ?? 1).fill(r));
   return shuffle(weighted);
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RELOAD FROM GOOGLE PLACES
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function reloadFromPlaces(r) {
+  await window.__mapsReady;
+  const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+  return new Promise((resolve, reject) => {
+    service.getDetails(
+      {
+        placeId: r.placeId,
+        fields: ['name', 'formatted_address', 'geometry', 'types', 'price_level', 'opening_hours'],
+      },
+      async (place, status) => {
+        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place) {
+          reject(new Error('Place not found'));
+          return;
+        }
+        const updates = {
+          name:    place.name,
+          address: place.formatted_address,
+          lat:     place.geometry.location.lat(),
+          lng:     place.geometry.location.lng(),
+        };
+        if (place.price_level != null) {
+          updates.priceLevel = place.price_level;
+        }
+        if (place.opening_hours) {
+          updates.openingHours = {
+            periods:      place.opening_hours.periods ?? [],
+            weekday_text: place.opening_hours.weekday_text ?? [],
+          };
+        }
+        // Only fill in cuisine from Places if the restaurant has none
+        if (!r.cuisine?.length) {
+          updates.cuisine = extractCuisine(place.types);
+        }
+        await patchRestaurant(r.id, updates);
+        resolve();
+      }
+    );
+  });
 }
 
 
