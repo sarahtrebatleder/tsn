@@ -42,6 +42,7 @@ let detailTarget    = null; // restaurant currently open in detail modal
 let autocomplete    = null; // google.maps.places.Autocomplete instance
 let userLocation    = null; // { lat, lng } from geolocation
 let suggestOnlyOpen = true; // filter suggest results to open restaurants
+let suggestSelectedTags = []; // cuisine tags to filter by (empty = no filter)
 
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -623,6 +624,21 @@ function openSuggestModal() {
 
 // ── Step 1: New vs. Loved ─────────────────────────────────────────────────────
 function renderStep1() {
+  const allTags = [...new Set(
+    restaurants.flatMap(r => r.cuisine ?? [])
+  )].sort();
+
+  const tagChipsHtml = allTags.length === 0 ? '' : `
+    <div class="suggest-tag-filter">
+      <p class="suggest-tag-label">Filter by cuisine</p>
+      <div class="suggest-tag-chips">
+        ${allTags.map(t => `
+          <button class="tag-filter-chip${suggestSelectedTags.includes(t) ? ' selected' : ''}"
+                  data-tag="${esc(t)}">${esc(t)}</button>
+        `).join('')}
+      </div>
+    </div>`;
+
   setContent(`
     <p class="suggest-title">What should we eat?</p>
     <p class="suggest-sub">Are you feeling adventurous?</p>
@@ -633,11 +649,26 @@ function renderStep1() {
     <label class="suggest-open-label">
       <input type="checkbox" id="s-open-only" ${suggestOnlyOpen ? 'checked' : ''}>
       Only open restaurants
-    </label>`);
+    </label>
+    ${tagChipsHtml}`);
 
   document.getElementById('s-open-only').addEventListener('change', e => {
     suggestOnlyOpen = e.target.checked;
   });
+
+  document.querySelectorAll('.tag-filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.tag;
+      if (suggestSelectedTags.includes(tag)) {
+        suggestSelectedTags = suggestSelectedTags.filter(t => t !== tag);
+        chip.classList.remove('selected');
+      } else {
+        suggestSelectedTags = [...suggestSelectedTags, tag];
+        chip.classList.add('selected');
+      }
+    });
+  });
+
   document.getElementById('s-new').addEventListener('click', () => renderStep2('want_to_try'));
   document.getElementById('s-loved').addEventListener('click', () => renderStep2('liked'));
 }
@@ -665,6 +696,12 @@ async function pickSuggestion(type, nearMe, skipRadius = false) {
 
   if (suggestOnlyOpen) {
     pool = pool.filter(r => isOpenNow(r.openingHours) === true);
+  }
+
+  if (suggestSelectedTags.length > 0) {
+    pool = pool.filter(r =>
+      (r.cuisine ?? []).some(t => suggestSelectedTags.includes(t))
+    );
   }
 
   if (nearMe && !skipRadius) {

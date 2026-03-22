@@ -794,6 +794,46 @@ input[type="radio"] {
   cursor: pointer;
 }
 
+.suggest-tag-filter {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.suggest-tag-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.suggest-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.tag-filter-chip {
+  background: transparent;
+  border: 1.5px solid var(--accent-mid);
+  color: var(--accent);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.tag-filter-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.tag-filter-chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
 .suggest-empty {
   text-align: center;
 }
