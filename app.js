@@ -827,6 +827,7 @@ function renderSuggestionCard(pool, index, type) {
 
   document.getElementById('s-card').addEventListener('click', (e) => {
     if (e.target.closest('a')) return; // let address link work normally
+    suggestModal.classList.remove('open');
     openDetail(r);
   });
   document.getElementById('s-nope').addEventListener('click', () =>
