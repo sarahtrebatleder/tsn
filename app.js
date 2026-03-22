@@ -305,6 +305,10 @@ function onPlaceSelected() {
   document.getElementById('cuisine-tags-wrap').hidden = false;
 }
 
+function capitalizeTag(t) {
+  return t.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function extractCuisine(types) {
   const SKIP = new Set([
     'restaurant', 'food', 'establishment', 'point_of_interest',
@@ -315,6 +319,49 @@ function extractCuisine(types) {
     .filter(t => !SKIP.has(t))
     .map(t => t.replace(/_/g, ' '))
     .map(t => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function buildTagAutocomplete(container, currentTags, onAdd) {
+  const allTags = [...new Set(restaurants.flatMap(r => r.cuisine ?? []))]
+    .filter(t => !currentTags.includes(t))
+    .sort();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tag-input-wrap';
+  wrap.innerHTML = `
+    <input type="text" class="tag-input" placeholder="Type a cuisine…" autocomplete="off">
+    <ul class="tag-suggestions" hidden></ul>`;
+  container.appendChild(wrap);
+
+  const input = wrap.querySelector('.tag-input');
+  const list  = wrap.querySelector('.tag-suggestions');
+  input.focus();
+
+  function showSuggestions(val) {
+    const q = val.trim().toLowerCase();
+    const matches = q ? allTags.filter(t => t.toLowerCase().includes(q)) : [];
+    if (matches.length === 0) { list.hidden = true; return; }
+    list.innerHTML = matches.map(t => `<li class="tag-suggestion-item" data-tag="${esc(t)}">${esc(t)}</li>`).join('');
+    list.hidden = false;
+    list.querySelectorAll('.tag-suggestion-item').forEach(li => {
+      li.addEventListener('mousedown', e => {
+        e.preventDefault();
+        onAdd(li.dataset.tag);
+      });
+    });
+  }
+
+  function commit() {
+    const val = input.value.trim();
+    if (val) onAdd(capitalizeTag(val));
+  }
+
+  input.addEventListener('input', () => showSuggestions(input.value));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { wrap.remove(); }
+  });
+  input.addEventListener('blur', () => { list.hidden = true; });
 }
 
 function renderCuisineTags(tags) {
@@ -335,11 +382,11 @@ function renderCuisineTags(tags) {
   });
 
   document.getElementById('tag-add-btn').addEventListener('click', () => {
-    const tag = prompt('Add a cuisine tag:')?.trim();
-    if (tag) {
-      selectedPlace.cuisine.push(tag);
+    document.getElementById('tag-add-btn').remove();
+    buildTagAutocomplete(container, selectedPlace.cuisine, tag => {
+      selectedPlace.cuisine.push(capitalizeTag(tag));
       renderCuisineTags(selectedPlace.cuisine);
-    }
+    });
   });
 }
 
@@ -476,13 +523,14 @@ function renderDetailCuisineTags(tags) {
   });
 
   document.getElementById('detail-tag-add-btn').addEventListener('click', async () => {
-    const tag = prompt('Add a cuisine tag:')?.trim();
-    if (tag) {
-      detailTarget.cuisine.push(tag);
+    document.getElementById('detail-tag-add-btn').remove();
+    const detailCuisineEl = document.getElementById('detail-cuisine');
+    buildTagAutocomplete(detailCuisineEl, detailTarget.cuisine, async tag => {
+      detailTarget.cuisine.push(capitalizeTag(tag));
       renderDetailCuisineTags(detailTarget.cuisine);
       await patchRestaurant(detailTarget.id, { cuisine: detailTarget.cuisine });
       renderList();
-    }
+    });
   });
 }
 
@@ -625,7 +673,7 @@ function openSuggestModal() {
 // ── Step 1: New vs. Loved ─────────────────────────────────────────────────────
 function renderStep1() {
   const allTags = [...new Set(
-    restaurants.flatMap(r => r.cuisine ?? [])
+    restaurants.flatMap(r => r.cuisine ?? []).map(capitalizeTag)
   )].sort();
 
   const tagChipsHtml = allTags.length === 0 ? '' : `
@@ -700,7 +748,7 @@ async function pickSuggestion(type, nearMe, skipRadius = false) {
 
   if (suggestSelectedTags.length > 0) {
     pool = pool.filter(r =>
-      (r.cuisine ?? []).some(t => suggestSelectedTags.includes(t))
+      (r.cuisine ?? []).some(t => suggestSelectedTags.includes(capitalizeTag(t)))
     );
   }
 

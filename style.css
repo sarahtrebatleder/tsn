@@ -335,6 +335,53 @@ img { display: block; }
 
 .tag-add:hover { border-color: var(--accent); }
 
+/* ── Tag autocomplete input ─────────────────────────────────────────────────── */
+.tag-input-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.tag-input {
+  border: 1.5px solid var(--accent-mid);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  color: var(--accent);
+  width: 130px;
+  outline: none;
+  font-family: inherit;
+}
+
+.tag-input:focus { border-color: var(--accent); }
+
+.tag-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1.5px solid var(--accent-mid);
+  border-radius: 10px;
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+  min-width: 150px;
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.tag-suggestion-item {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.tag-suggestion-item:hover { background: var(--accent-light); }
+
 .cuisine-tags {
   display: flex;
   flex-wrap: wrap;
@@ -821,6 +868,7 @@ input[type="radio"] {
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-transform: capitalize;
 }
 
 .tag-filter-chip:hover {
