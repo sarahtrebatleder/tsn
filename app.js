@@ -7,8 +7,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -56,18 +55,17 @@ const listContainer  = document.getElementById('list-container');
 // AUTH
 // ═════════════════════════════════════════════════════════════════════════════
 
-document.getElementById('sign-in-btn').addEventListener('click', () => {
-  signInWithRedirect(auth, new GoogleAuthProvider());
+document.getElementById('sign-in-btn').addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (err) {
+    if (err.code !== 'auth/cancelled-popup-request' && err.code !== 'auth/popup-closed-by-user') {
+      showToast('Sign-in failed — please try again.');
+    }
+  }
 });
 
 document.getElementById('sign-out-btn').addEventListener('click', () => signOut(auth));
-
-// Handle redirect result from signInWithRedirect
-getRedirectResult(auth).catch(err => {
-  if (err.code !== 'auth/cancelled-popup-request' && err.code !== 'auth/popup-closed-by-user') {
-    showToast('Sign-in failed — please try again.');
-  }
-});
 
 onAuthStateChanged(auth, async user => {
   if (user) {
