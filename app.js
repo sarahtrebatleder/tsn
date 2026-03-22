@@ -807,7 +807,7 @@ function renderSuggestionCard(pool, index, type) {
       : `<div class="suggestion-open"><span class="closed-badge">Closed now</span></div>`;
 
   setContent(`
-    <div class="suggestion-card">
+    <div class="suggestion-card" id="s-card" style="cursor:pointer" title="Tap to see full details">
       <div class="suggestion-name">${esc(r.name)}</div>
       ${price    ? `<div class="suggestion-price">${esc(price)}</div>` : ''}
       ${cuisine  ? `<div class="tags" style="justify-content:center">${cuisine}</div>` : ''}
@@ -816,6 +816,7 @@ function renderSuggestionCard(pool, index, type) {
       </div>
       ${openBadge}
       ${r.rating ? `<div class="suggestion-rating">${esc(ratingLabel(r.rating))}</div>` : ''}
+      <div class="suggestion-tap-hint">Tap for details &amp; notes</div>
     </div>
     <div class="suggest-actions">
       <button class="not-feeling-btn" id="s-nope">Not feeling it →</button>
@@ -824,6 +825,10 @@ function renderSuggestionCard(pool, index, type) {
       <button class="btn btn-ghost suggest-back" id="s-back2">← Back</button>
     </div>`);
 
+  document.getElementById('s-card').addEventListener('click', (e) => {
+    if (e.target.closest('a')) return; // let address link work normally
+    openDetail(r);
+  });
   document.getElementById('s-nope').addEventListener('click', () =>
     renderSuggestionCard(pool, index + 1, type)
   );
