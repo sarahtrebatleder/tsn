@@ -4,7 +4,7 @@
 // Firestore handles its own offline persistence separately.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CACHE_NAME = 'tsn-shell-v9';
+const CACHE_NAME = 'tsn-shell-v10';
 
 // Build asset paths relative to this service worker's location,
 // so the app works whether hosted at root or a sub-path (e.g. GitHub Pages).
