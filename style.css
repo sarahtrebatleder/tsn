@@ -566,15 +566,6 @@ img { display: block; }
   opacity: 0.8;
 }
 
-.form-notice {
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  background: var(--accent-light);
-  border: 1px solid var(--accent-mid);
-}
-
 input[type="text"],
 textarea {
   background: var(--bg);
