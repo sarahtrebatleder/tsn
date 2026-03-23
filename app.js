@@ -473,7 +473,7 @@ function closeDetail() {
 
 function renderDetail() {
   const r        = detailTarget;
-  const mapsUrl  = `https://www.google.com/maps/place/?q=place_id:${r.placeId}`;
+  const mapsUrl  = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.placeId}`;
   const price    = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
 
   const openStatus  = isOpenNow(r.openingHours);
@@ -797,7 +797,7 @@ function renderSuggestionCard(pool, index, type) {
   }
 
   const r          = pool[index];
-  const mapsUrl    = `https://www.google.com/maps/place/?q=place_id:${r.placeId}`;
+  const mapsUrl    = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.placeId}`;
   const price      = r.priceLevel ? '$'.repeat(r.priceLevel) : '';
   const cuisine    = (r.cuisine ?? []).map(c => `<span class="tag">${esc(c)}</span>`).join('');
   const openStatus = isOpenNow(r.openingHours);
